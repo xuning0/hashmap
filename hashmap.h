@@ -27,6 +27,8 @@ void *hashmap_get(hashmap *map, void *key);
 
 void *hashmap_set(hashmap *map, void *key, void *value);
 
+size_t hashmap_count(hashmap *map);
+
 void *hashmap_remove(hashmap *map, void *key);
 
 void hashmap_iterate(hashmap *map, bool (*callback)(void *key, void *value));

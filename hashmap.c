@@ -221,6 +221,8 @@ void hashmap_iterate(hashmap *map, bool (*callback)(void *key, void *value)) {
   }
 }
 
+size_t hashmap_count(hashmap *map) { return map->size; }
+
 void hashmap_lock(hashmap *map) { pthread_mutex_lock(&map->lock); }
 
 void hashmap_unlock(hashmap *map) { pthread_mutex_unlock(&map->lock); }
