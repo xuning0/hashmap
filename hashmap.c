@@ -7,7 +7,6 @@
 
 #include "hashmap.h"
 
-#include <assert.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,8 +28,23 @@ struct hashmap {
   pthread_mutex_t lock;
 };
 
-hashmap *hashmap_custom_create(size_t capacity, int (*hash)(void *key),
-                               bool (*is_keys_equal)(void *key1, void *key2)) {
+static inline int default_hash_key(void *key) {
+  char *data = (char *)key;
+  size_t key_size = strlen(data);
+  int h = (int)key_size;
+  for (size_t i = 0; i < key_size; i++) {
+    h = 31 * h + *data;
+    data++;
+  }
+  return h;
+}
+
+static inline bool default_is_keys_equal(void *key1, void *key2) {
+  return strcmp((const char *)key1, (const char *)key2) == 0;
+}
+
+hashmap *hashmap_create(size_t capacity, int (*hash)(void *key),
+                        bool (*is_keys_equal)(void *key1, void *key2)) {
   hashmap *map = (hashmap *)malloc(sizeof(hashmap));
   if (map == NULL) {
     return NULL;
@@ -39,7 +53,7 @@ hashmap *hashmap_custom_create(size_t capacity, int (*hash)(void *key),
   // 0.75 load factor
   size_t min_bucket_count = capacity * 4 / 3;
   map->bucket_count = 1;
-  while (map->bucket_count <= min_bucket_count) {
+  while (map->bucket_count < min_bucket_count) {
     // Bucket count must be power of 2
     map->bucket_count <<= 1;
   }
@@ -61,8 +75,6 @@ hashmap *hashmap_custom_create(size_t capacity, int (*hash)(void *key),
   return map;
 }
 
-hashmap *hashmap_create() { return hashmap_custom_create(64, NULL, NULL); }
-
 void hashmap_free(hashmap *map) {
   for (size_t i = 0; i < map->bucket_count; i++) {
     entry *e = map->buckets[i];
@@ -77,24 +89,9 @@ void hashmap_free(hashmap *map) {
   free(map);
 }
 
-static inline int default_hash_key(void *key) {
-  char *data = (char *)key;
-  size_t key_size = strlen(data);
-  int h = (int)key_size;
-  for (size_t i = 0; i < key_size; i++) {
-    h = 31 * h + *data;
-    data++;
-  }
-  return h;
-}
-
 static inline int hash_key(hashmap *map, void *key) {
   int h = map->hash(key);
   return h;
-}
-
-static inline bool default_is_keys_equal(void *key1, void *key2) {
-  return strcmp((const char *)key1, (const char *)key2) == 0;
 }
 
 static inline bool is_keys_equal(void *key1, int hash1, void *key2, int hash2,

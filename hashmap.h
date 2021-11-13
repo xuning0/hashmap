@@ -16,10 +16,8 @@ extern "C" {
 
 typedef struct hashmap hashmap;
 
-hashmap *hashmap_create();
-
-hashmap *hashmap_custom_create(size_t capacity, int (*hash)(void *key),
-                               bool (*is_keys_equal)(void *key1, void *key2));
+hashmap *hashmap_create(size_t capacity, int (*hash)(void *key),
+                        bool (*is_keys_equal)(void *key1, void *key2));
 
 void hashmap_free(hashmap *map);
 
