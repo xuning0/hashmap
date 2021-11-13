@@ -7,6 +7,7 @@
 
 #include "hashmap.h"
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -155,6 +156,7 @@ void *hashmap_set(hashmap *map, void *key, void *value) {
     if (current == NULL) {
       *p = create_entry(key, value, hash);
       if (*p == NULL) {
+        errno = ENOMEM;
         return NULL;
       }
       map->size++;

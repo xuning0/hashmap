@@ -27,8 +27,9 @@ static void test_hashmap_get_set() {
 static void test_hashmap_get_set2() {
   hashmap *map = hashmap_create(12, NULL, NULL);
   hashmap_set(map, "k1", "v1");
-  hashmap_set(map, "k1", "v10");
+  char *pre = hashmap_set(map, "k1", "v10");
   assert(strcmp(hashmap_get(map, "k1"), "v10") == 0);
+  assert(strcmp(pre, "v1") == 0);
 }
 
 static void test_hashmap_remove() {
