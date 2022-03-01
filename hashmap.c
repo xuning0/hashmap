@@ -12,16 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct entry entry;
-struct entry {
+typedef struct hashmap_entry hashmap_entry;
+struct hashmap_entry {
   void *key;
   void *value;
   int hash;
-  entry *next;
+  hashmap_entry *next;
 };
 
 struct hashmap {
-  entry **buckets;
+  hashmap_entry **buckets;
   size_t bucket_count;
   size_t size;
   int (*hash)(void *key);
@@ -44,7 +44,7 @@ static inline bool default_is_keys_equal(void *key1, void *key2) {
   return strcmp((const char *)key1, (const char *)key2) == 0;
 }
 
-hashmap *hashmap_create(size_t capacity, int (*hash)(void *key),
+hashmap *hashmap_create(size_t initial_capacity, int (*hash)(void *key),
                         bool (*is_keys_equal)(void *key1, void *key2)) {
   hashmap *map = (hashmap *)malloc(sizeof(hashmap));
   if (map == NULL) {
@@ -52,14 +52,15 @@ hashmap *hashmap_create(size_t capacity, int (*hash)(void *key),
   }
 
   // 0.75 load factor
-  size_t min_bucket_count = capacity * 4 / 3;
+  size_t min_bucket_count = initial_capacity * 4 / 3;
   map->bucket_count = 1;
   while (map->bucket_count < min_bucket_count) {
     // Bucket count must be power of 2
     map->bucket_count <<= 1;
   }
 
-  map->buckets = (entry **)(calloc(map->bucket_count, sizeof(entry *)));
+  map->buckets =
+      (hashmap_entry **)(calloc(map->bucket_count, sizeof(hashmap_entry *)));
   if (map->buckets == NULL) {
     free(map);
     return NULL;
@@ -78,9 +79,9 @@ hashmap *hashmap_create(size_t capacity, int (*hash)(void *key),
 
 void hashmap_free(hashmap *map) {
   for (size_t i = 0; i < map->bucket_count; i++) {
-    entry *e = map->buckets[i];
+    hashmap_entry *e = map->buckets[i];
     while (e != NULL) {
-      entry *next = e->next;
+      hashmap_entry *next = e->next;
       free(e);
       e = next;
     }
@@ -110,8 +111,8 @@ static inline size_t calculate_index(size_t bucket_count, int hash) {
   return ((size_t)hash) & (bucket_count - 1);
 }
 
-static entry *create_entry(void *key, void *value, int hash) {
-  entry *e = (entry *)malloc(sizeof(entry));
+static hashmap_entry *create_entry(void *key, void *value, int hash) {
+  hashmap_entry *e = (hashmap_entry *)malloc(sizeof(hashmap_entry));
   if (e == NULL) {
     return NULL;
   }
@@ -125,15 +126,16 @@ static entry *create_entry(void *key, void *value, int hash) {
 static void expand_if_needed(hashmap *map) {
   if (map->size > (map->bucket_count * 3 / 4)) {
     size_t new_bucket_count = map->bucket_count << 1;
-    entry **new_buckets = (entry **)calloc(new_bucket_count, sizeof(entry *));
+    hashmap_entry **new_buckets =
+        (hashmap_entry **)calloc(new_bucket_count, sizeof(hashmap_entry *));
     if (new_buckets == NULL) {
       return;
     }
     // Move over existing entries.
     for (size_t i = 0; i < map->bucket_count; i++) {
-      entry *e = map->buckets[i];
+      hashmap_entry *e = map->buckets[i];
       while (e != NULL) {
-        entry *next = e->next;
+        hashmap_entry *next = e->next;
         size_t index = calculate_index(new_bucket_count, e->hash);
         e->next = new_buckets[index];
         new_buckets[index] = e;
@@ -149,10 +151,10 @@ static void expand_if_needed(hashmap *map) {
 void *hashmap_set(hashmap *map, void *key, void *value) {
   int hash = map->hash(key);
   size_t index = calculate_index(map->bucket_count, hash);
-  entry **p = &(map->buckets[index]);
+  hashmap_entry **p = &(map->buckets[index]);
   while (true) {
-    entry *current = *p;
-    // Add a new entry
+    hashmap_entry *current = *p;
+    // Add a new hashmap_entry
     if (current == NULL) {
       *p = create_entry(key, value, hash);
       if (*p == NULL) {
@@ -163,7 +165,7 @@ void *hashmap_set(hashmap *map, void *key, void *value) {
       expand_if_needed(map);
       return NULL;
     }
-    // Replace existing entry
+    // Replace existing hashmap_entry
     if (is_keys_equal(current->key, current->hash, key, hash,
                       map->is_keys_equal)) {
       void *old_value = current->value;
@@ -178,7 +180,7 @@ void *hashmap_set(hashmap *map, void *key, void *value) {
 void *hashmap_get(hashmap *map, void *key) {
   int hash = hash_key(map, key);
   size_t index = calculate_index(map->bucket_count, hash);
-  entry *e = map->buckets[index];
+  hashmap_entry *e = map->buckets[index];
   while (e != NULL) {
     if (is_keys_equal(e->key, e->hash, key, hash, map->is_keys_equal)) {
       return e->value;
@@ -191,8 +193,8 @@ void *hashmap_get(hashmap *map, void *key) {
 void *hashmap_remove(hashmap *map, void *key) {
   int hash = hash_key(map, key);
   size_t index = calculate_index(map->bucket_count, hash);
-  entry **p = &(map->buckets[index]);
-  entry *current;
+  hashmap_entry **p = &(map->buckets[index]);
+  hashmap_entry *current;
   while ((current = *p) != NULL) {
     if (is_keys_equal(current->key, current->hash, key, hash,
                       map->is_keys_equal)) {
@@ -207,12 +209,14 @@ void *hashmap_remove(hashmap *map, void *key) {
   return NULL;
 }
 
-void hashmap_iterate(hashmap *map, bool (*callback)(void *key, void *value)) {
+void hashmap_iterate(hashmap *map,
+                     bool (*callback)(void *key, void *value, void *context),
+                     void *context) {
   for (size_t i = 0; i < map->bucket_count; i++) {
-    entry *e = map->buckets[i];
+    hashmap_entry *e = map->buckets[i];
     while (e != NULL) {
-      entry *next = e->next;
-      if (!callback(e->key, e->value)) {
+      hashmap_entry *next = e->next;
+      if (!callback(e->key, e->value, context)) {
         return;
       }
       e = next;

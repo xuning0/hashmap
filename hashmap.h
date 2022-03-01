@@ -13,19 +13,20 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct hashmap hashmap;
 
 /**
  * Creates a new hash map. Returns NULL if memory allocation fails.
  *
- * @param capacity number of expected entries
+ * @param initial_capacity number of expected entries
  * @param hash function which hashes keys. If use a string type key, just pass
  * `NULL` to use the default hash algorithm.
  * @param is_keys_equal function which compares keys for equality. If use a
  * string type key, just pass `NULL` to use the default compare function.
  */
-hashmap *hashmap_create(size_t capacity, int (*hash)(void *key),
+hashmap *hashmap_create(size_t initial_capacity, int (*hash)(void *key),
                         bool (*is_keys_equal)(void *key1, void *key2));
 
 /**
@@ -65,7 +66,9 @@ void *hashmap_remove(hashmap *map, void *key);
  * Invokes the given callback on each entry in the map. Stops iterating if
  * the callback returns false.
  */
-void hashmap_iterate(hashmap *map, bool (*callback)(void *key, void *value));
+void hashmap_iterate(hashmap *map,
+                     bool (*callback)(void *key, void *value, void *context),
+                     void *context);
 
 /**
  * Locks the hash map so only the current thread can access it.
