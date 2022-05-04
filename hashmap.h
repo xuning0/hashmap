@@ -30,9 +30,9 @@ hashmap *hashmap_create(size_t initial_capacity, int (*hash)(void *key),
                         bool (*is_keys_equal)(void *key1, void *key2));
 
 /**
- * Frees the hash map. Does not free the keys or values themselves.
+ * Frees entries in the hash map. Does not free the keys or values themselves.
  */
-void hashmap_free(hashmap *map);
+void hashmap_destroy(hashmap *map);
 
 /**
  * Gets a value from the map.

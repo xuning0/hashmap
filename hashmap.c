@@ -77,7 +77,7 @@ hashmap *hashmap_create(size_t initial_capacity, int (*hash)(void *key),
   return map;
 }
 
-void hashmap_free(hashmap *map) {
+void hashmap_destroy(hashmap *map) {
   for (size_t i = 0; i < map->bucket_count; i++) {
     hashmap_entry *e = map->buckets[i];
     while (e != NULL) {
@@ -87,8 +87,8 @@ void hashmap_free(hashmap *map) {
     }
   }
   free(map->buckets);
+  map->buckets = NULL;
   pthread_mutex_destroy(&map->lock);
-  free(map);
 }
 
 static inline int hash_key(hashmap *map, void *key) {

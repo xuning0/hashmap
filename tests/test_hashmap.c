@@ -14,6 +14,13 @@ static void test_hashmap_create() {
   assert(map->is_keys_equal != NULL);
 }
 
+static void test_hashmap_destroy() {
+  hashmap *map = hashmap_create(12, NULL, NULL);
+  hashmap_destroy(map);
+  assert(map != NULL);
+  assert(map->buckets == NULL);
+}
+
 static void test_hashmap_get_set() {
   hashmap *map = hashmap_create(12, NULL, NULL);
   hashmap_set(map, "k1", "v1");
@@ -55,7 +62,7 @@ static void test_hashmap_auto_expand() {
 }
 
 static int count = 0;
-static bool iterator(void *key, void *value) {
+static bool iterator(void *key, void *value, void *context) {
   count++;
   return true;
 }
@@ -67,12 +74,13 @@ static void test_hashmap_iterate() {
   hashmap_set(map, "k3", "v3");
 
   count = 0;
-  hashmap_iterate(map, iterator);
+  hashmap_iterate(map, iterator, NULL);
   assert(count == 3);
 }
 
 int main() {
   test_hashmap_create();
+  test_hashmap_destroy();
   test_hashmap_get_set();
   test_hashmap_get_set2();
   test_hashmap_remove();
