@@ -44,19 +44,21 @@ char *removed = hashmap_remove(map, "k1");
 You can iterate over all the entries stored in the hashmap with the `hashmap_iterate` function:
 
 ```c
-static bool iterator(void *key, void *value) {
+static bool iterator(void *key, void *value, void *context) {
   printf("k: %s, v: %s\n", key, value);
   if (strcmp(key, "k3") == 0) {
+    *(bool *)context = true;
     // Stop here
     return false;
   }
   return true;
 }
 
-hashmap_iterate(map, iterator);
+bool found;
+hashmap_iterate(map, iterator, &found);
 ```
 
-You can early exit from the iteration of the hashmap by returning non-zero from your callback function.
+You can early exit from the iteration of the hashmap by returning `false` from your callback function.
 
 ### Get Number of Entries
 

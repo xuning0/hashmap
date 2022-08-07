@@ -61,9 +61,12 @@ static void test_hashmap_auto_expand() {
   assert(map->bucket_count == 8);
 }
 
-static int count = 0;
 static bool iterator(void *key, void *value, void *context) {
-  count++;
+  if (strcmp(key, "k2") == 0) {
+    *(bool *)context = true;
+    return false;
+  }
+
   return true;
 }
 
@@ -73,9 +76,9 @@ static void test_hashmap_iterate() {
   hashmap_set(map, "k2", "v2");
   hashmap_set(map, "k3", "v3");
 
-  count = 0;
-  hashmap_iterate(map, iterator, NULL);
-  assert(count == 3);
+  bool found = false;
+  hashmap_iterate(map, iterator, &found);
+  assert(found == true);
 }
 
 int main() {
